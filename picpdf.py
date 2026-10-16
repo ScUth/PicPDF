@@ -216,7 +216,7 @@ def semiAuto():
 
 
 def main():
-    print("PicPDF version 0.6.0 powered by Python © Scith - Jul 2026")
+    print("PicPDF version 0.6.0 powered by Python - Jul 2026")
     print("Update 07-Jul-2026 this version can combined PDF files, but beware of your files to be an all images or all PDF (can't combined now)")
     mode = input(
         'Select mode manual or auto [each picture each PDF] (M/ any ) : ')
