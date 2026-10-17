@@ -7,11 +7,7 @@ import os
 import sys
 import re
 import fitz
-
-# Global variable
-y = ['Y', 'y', 'ั', 'υ']
-a = ['A', 'a']
-m = ['M', 'm']
+from pathlib import Path
 
 # root = tk.Tk()
 # root.title('Tkinter File Dialog')
@@ -33,6 +29,13 @@ def select_files():
 
     return filenames
 # Rotate image based on EXIF orientation
+
+def select_folder():
+    folderName = fd.askdirectory(
+        title="Select a Folder",
+        initialdir="/"
+    )
+    return folderName
 
 
 def correct_image_orientation(image):
@@ -76,7 +79,7 @@ def extract_name(name):
     return fnam
 
 
-def extract_type(name):
+def extract_type(name): # extension
     for od, char in enumerate(name):
         if char == ".":
             odr = od
@@ -116,7 +119,7 @@ def savePDF(tpl, name, path):
     result.save(f"{path}{name}.pdf")
 
 
-def auto():
+def OneByOne():
     print("By auto converting, the name of your converted file will be the same as your picture file.")
     tpl = select_files()
     path = get_path(tpl[0])
@@ -132,98 +135,192 @@ def auto():
     print(f"All file are save at {path}")
 
 
+def ask_yes_no(prompt):
+    """Ask a yes/no question, retry until valid answer. Returns True for yes."""
+    while True:
+        ans = input(prompt).strip()
+        if ans in ['Y', 'y', 'ั', 'υ']:
+            return True
+        if ans in ['N', 'n', 'ื', 'ν']:
+            return False
+        print("WRONG REPLY! Please answer Y or N.")
+
+
+def preview_and_confirm(tpl_sorted, path, name, type):
+    """Show the file order and let user confirm or pick a different order.
+    Returns the confirmed tuple, or exits if user gives up."""
+    attempts = 0
+    max_attempts = 3
+
+    while True:
+        print("\n--- Preview ---")
+        for i, filename in enumerate(tpl_sorted, 1):
+            print(f"  {i}. {format_name(filename)}")
+        print(f"Output: {path}{name}.pdf")
+        print("---------------")
+
+        if ask_yes_no("Is this order correct? (Y/N): "):
+            return tpl_sorted
+
+        attempts += 1
+        if attempts >= max_attempts:
+            sys.exit("Too many failed attempts. Program closed.")
+
+        # Ask for a different order
+        choice = input(
+            "Sort order: (1)-Ascending [1,2,3]  (2)-Descending [3,2,1]  (N)-No sort (1/2/N): "
+        ).strip().lower()
+        while choice not in ['1', '2', 'n']:
+            choice = input(
+                "WRONG REPLY! (1)-Ascending  (2)-Descending  (N)-No sort (1/2/N): "
+            ).strip().lower()
+
+        tpl_sorted = apply_sort(tpl_sorted, choice)
+
+
+def apply_sort(tpl, choice):
+    """Return tpl sorted according to choice: '1'=asc, '2'=desc, 'n'=as-is."""
+    if choice == '1':
+        return tuple(sorted(tpl, key=natural_sort_key))
+    if choice == '2':
+        return tuple(sorted(tpl, key=natural_sort_key, reverse=True))
+    return tuple(tpl)
+
+
 def manual():
-    ns = input('Sort by name? (Y/N) : ')
-    tpl = select_files()  # Output is tpl
+    print("Manual mode: choose files, set output name, choose order, confirm.")
+
+    # 1. Pick files
+    tpl = select_files()
+    if not tpl:
+        sys.exit("No files selected.")
+
     path = get_path(tpl[0])
-    print(path)
-    name = input('Name : ')
-    numberOfTime = 0
+    print(f"Files will be saved in: {path}")
+
+    # 2. Output name
+    name = input("Name (leave blank to auto-generate): ").strip()
     if name == "":
         name = file_name(tpl)
     pdf_path = f"{path}{name}.pdf"
-    type = extract_type(format_name(tpl[0]))
+    file_type = extract_type(format_name(tpl[0]))
 
-    while ns not in ['Y', 'y', 'ั', 'υ', 'N', 'n', 'ื', 'ν']:
-        ns = input('WRONG REPLY!, Sort by name? (Y/N) : ')
+    # 3. Initial sort choice
+    choice = input(
+        "Sort order: (1)-Ascending [1,2,3]  (2)-Descending [3,2,1]  (N)-No sort (1/2/N): "
+    ).strip().lower()
+    while choice not in ['1', '2', 'n']:
+        choice = input(
+            "WRONG REPLY! (1)-Ascending  (2)-Descending  (N)-No sort (1/2/N): "
+        ).strip().lower()
 
-    if ns in ['Y', 'y', 'ั', 'υ']:
-        check = input(
-            'Sort in (1)-normal order [1, 2, 3] OR (2)-reverse order [3, 2, 1] (1/2) : ')
-        while check not in ['1', '2']:
-            check = input(
-                'WRONG REPLY!, Sort in (1)-normal order [1, 2, 3] OR (2)-reverse order [3, 2, 1] (1/2) : ')
-        while True:
-            tplTMP = tpl
-            if check == '1':
-                print("confirmed check = 1")
-                numberOfTime += 1
-                lis = list(tplTMP)
-                # lis.sort(reverse=False)
-                lis = sorted(lis, key=natural_sort_key)
-                tplTMP = tuple(lis)
+    tpl_sorted = apply_sort(tpl, choice)
 
-                for filename in tplTMP:
-                    print(filename)
-                print()
-                nd_check = input("Is this order correct? (Y/N) : ")
-                if nd_check in ['Y', 'y', 'ั', 'υ']:
-                    break
-                else:
-                    # print("Try select image by order again and type (N) for not sorting.")
-                    if numberOfTime >= 2:
-                        sys.exit(
-                            "Try select image by order again and type (N) for not sorting.")
-                    print("This is (2-reverse order) option ")
-                    check = '2'
-            elif check == '2':
-                print("confirmed check = 2")
-                numberOfTime += 1
-                tplTMP = sorted(tplTMP, key=natural_sort_key, reverse=True)
-                for filename in tplTMP:
-                    print(filename)
-                print()
-                nd_check = input("Is this order correct? (Y/N) : ")
-                if nd_check in ['Y', 'y', 'ั', 'υ']:
-                    break
-                else:
-                    if numberOfTime >= 2:
-                        sys.exit(
-                            "Try select image by order again and type (N) for not sorting.")
-                    # print("Try select image by order again and type (N) for not sorting.")
-                    print("This is (1-normal order) option ")
-                    check = '1'
+    # 4. Preview + confirm (can change order if not happy)
+    tpl_sorted = preview_and_confirm(tpl_sorted, path, name, file_type)
+
+    # 5. Build the PDF
+    if file_type.lower() == "pdf":
+        savePDF(tpl_sorted, name, path)
     else:
-        print('Not sorting')
-        for filename in tpl:
-            print(filename)
-        check = input("Is this order correct? (Y/N) : ")
-        if check in y:
-            pass
-        else:
-            sys.exit("Program closed")
+        images = [correct_image_orientation(Image.open(img)) for img in tpl_sorted]
+        images[0].save(
+            pdf_path, "PDF", resolution=100.0,
+            save_all=True, append_images=images[1:]
+        )
 
-    if type in ["PDF", "pdf"]:
-        savePDF(tplTMP, name, path)
+    print(f"\nDone! PDF saved at: {pdf_path}")
+
+
+def Folder():
+    print("Folder mode: Convert all images in a folder into a single PDF")
+    path = select_folder()
+    if not path:
+        sys.exit("No folder selected")
+    
+    # Ensure path ends with separator
+    if not path.endswith(os.sep):
+        path += os.sep
+    
+    # Get all image files in folder
+    valid_ext = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp')
+    all_files = os.listdir(path)
+    tpl = tuple(
+        os.path.join(path, f) for f in all_files
+        if f.lower().endswith(valid_ext) and os.path.isfile(os.path.join(path, f))
+    )
+    
+    if not tpl:
+        sys.exit("No image files found in the selected folder")
+    
+    print(f"\nFound {len(tpl)} image file(s):")
+    for f in tpl:
+        print(f"  {format_name(f)}")
+    
+    # Ask for output name
+    default_name = format_name(path.rstrip(os.sep))
+    nameDecision = input(f"\nDo you want to use '{default_name}' as the PDF name? (Y/N): ")
+    if nameDecision in y:
+        name = default_name
     else:
-        images = [correct_image_orientation(Image.open(img)) for img in tplTMP]
-        images[0].save(pdf_path, "PDF", resolution=100.0,
-                       save_all=True, append_images=images[1:])
-
-
-def semiAuto():
-    pass
+        name = input("Enter PDF name: ").strip()
+        if name == "":
+            name = default_name
+    
+    # Ask for sorting order
+    sort_choice = input(
+        "Sort order: (1)-Ascending [1,2,3]  (2)-Descending [3,2,1]  (N)-No sort (1/2/N): "
+    ).strip().lower()
+    while sort_choice not in ['1', '2', 'n']:
+        sort_choice = input(
+            "WRONG REPLY! (1)-Ascending  (2)-Descending  (N)-No sort (1/2/N): "
+        ).strip().lower()
+    
+    # Apply sorting
+    if sort_choice == '1':
+        tpl_sorted = tuple(sorted(tpl, key=natural_sort_key))
+        order_label = "Ascending"
+    elif sort_choice == '2':
+        tpl_sorted = tuple(sorted(tpl, key=natural_sort_key, reverse=True))
+        order_label = "Descending"
+    else:
+        tpl_sorted = tpl
+        order_label = "No sort (as listed)"
+    
+    # Show sorting result and confirm
+    print(f"\n--- Sorting result ({order_label}) ---")
+    for i, filename in enumerate(tpl_sorted, 1):
+        print(f"  {i}. {format_name(filename)}")
+    print("-----------------------------------")
+    print(f"Output: {path}{name}.pdf")
+    
+    confirm = input("\nConfirm and create PDF? (Y/N): ").strip()
+    while confirm not in y and confirm not in ['N', 'n', 'ื', 'ν']:
+        confirm = input("WRONG REPLY! Confirm and create PDF? (Y/N): ").strip()
+    
+    if confirm not in y:
+        sys.exit("Program closed")
+    
+    # Create PDF
+    pdf_path = f"{path}{name}.pdf"
+    images = [correct_image_orientation(Image.open(img)) for img in tpl_sorted]
+    images[0].save(
+        pdf_path, "PDF", resolution=100.0,
+        save_all=True, append_images=images[1:]
+    )
+    print(f"\nDone! PDF saved at: {pdf_path}")
 
 
 def main():
-    print("PicPDF version 0.6.0 powered by Python - Jul 2026")
-    print("Update 07-Jul-2026 this version can combined PDF files, but beware of your files to be an all images or all PDF (can't combined now)")
+    print("PicPDF version 0.7.0 powered by Python - Oct 2026")
+    print("Update 17-Oct-2026 this version can combined PDF files, but beware of your files to be an all images or all PDF (can't combined now)")
     mode = input(
-        'Select mode manual or auto [each picture each PDF] (M/ any ) : ')
-    if mode in m:
+        'Select mode manual or one-by-one or folder [each picture each PDF] (M/O/F): ').lower()
+    if mode == "m":
         manual()
-    else:
-        auto()
-
+    elif mode == "o":
+        OneByOne()
+    elif mode == "f":
+        Folder()
 
 main()
