@@ -52,6 +52,7 @@ One-by-one mode is the mode where you can **select any file** as you prefer eith
 
 - select file example:
 <img src="media/manual-select.png">
+
 - Once you select file, the application will convert each image to PDF immediately.
 - Log example:
 <img src="media/obo.png">
@@ -61,6 +62,7 @@ Folder mode is the mode where you can **select images folder** and that folder m
 
 - select folder example:
 <img src="media/folder-select.png">
+
 - Once you finish selecting folder the application will listing the file(s) found in the folder and ask are you prefer to use folder name as a file name.
 - Then application will ask you about sorting order which are:
 ```
