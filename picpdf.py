@@ -1,4 +1,3 @@
-import PIL
 from PIL import Image, ExifTags
 import tkinter as tk
 from tkinter import ttk
@@ -6,14 +5,8 @@ from tkinter import filedialog as fd
 import os
 import sys
 import re
-import fitz
+import pymupdf
 from pathlib import Path
-
-# root = tk.Tk()
-# root.title('Tkinter File Dialog')
-# root.resizable(False, False)
-# root.geometry('300x150')
-
 
 def select_files():
     filetypes = (
@@ -110,10 +103,10 @@ def natural_sort_key(text):
 
 
 def savePDF(tpl, name, path):
-    result = fitz.open()
+    result = pymupdf.open()
 
     for pdf in tpl:
-        with fitz.open(pdf) as mfile:
+        with pymupdf.open(pdf) as mfile:
             result.insert_pdf(mfile)
 
     result.save(f"{path}{name}.pdf")
@@ -259,8 +252,8 @@ def Folder():
     
     # Ask for output name
     default_name = format_name(path.rstrip(os.sep))
-    nameDecision = input(f"\nDo you want to use '{default_name}' as the PDF name? (Y/N): ")
-    if nameDecision in y:
+    nameDecision = input(f"\nDo you want to use '{default_name}' as the PDF name? (Y/N): ").lower()
+    if nameDecision == "y":
         name = default_name
     else:
         name = input("Enter PDF name: ").strip()
@@ -294,11 +287,11 @@ def Folder():
     print("-----------------------------------")
     print(f"Output: {path}{name}.pdf")
     
-    confirm = input("\nConfirm and create PDF? (Y/N): ").strip()
-    while confirm not in y and confirm not in ['N', 'n', 'ื', 'ν']:
+    confirm = input("\nConfirm and create PDF? (Y/N): ").strip().lower()
+    while confirm != "y" and confirm not in ['N', 'n', 'ื', 'ν']:
         confirm = input("WRONG REPLY! Confirm and create PDF? (Y/N): ").strip()
     
-    if confirm not in y:
+    if confirm != "y":
         sys.exit("Program closed")
     
     # Create PDF
